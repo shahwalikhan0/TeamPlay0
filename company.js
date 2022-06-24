@@ -1,29 +1,22 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useReducer } from 'react'
 import { useMutation, useLazyQuery } from '@apollo/client'
 import { GET_USERS } from '../GraphQL/Queries'
 import { ADD_COMPANY, DELETE_COMPANY, EDIT_COMPANY } from '../GraphQL/Mutations'
 import { changeStatus } from '../Functions/functions'
 
+                                                  //auto generated type///
 function Company () {
-  let temp = document.getElementById('main-section-span')
-  if (temp) temp.innerHTML = null
-
   const [formData, setFormData] = useState({})
-  const [th, setTh] = useState('th-main')
-  const [searchData, setSearchData] = useState('')
-  const [searchHide, setSearchHide] = useState('')
-  const [span, setSpan] = useState('search-span span-margin')
-  const [flex, setFlex] = useState('flex-row')
-  const [hide, setHide] = useState('company-template-form hide')
-  const [width, setWidth] = useState('dashboard-header vw87')
-  const [publish, setPublish] = useState('publish-btn')
-  const [star, setStar] = useState('star-btn')
-  const [disable, setDisable] = useState('')
-  const [rightBtn, setRightBtn] = useState('dashboard-header-buttons-right')
+  const [responsiveDashboard, setResponsiveDashboard] = useState('col-12')
+  const [searchData, setSearchData] = useState(<tr></tr>)
+  const [tableHide, setTableHide] = useState('')
+  const [hide, setHide] = useState('hide')
+  const [disable, setDisable] = useState(false)
   const [editCompanyId, setEditCompanyId] = useState(null)
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [description, setDescription] = useState('')
+  const [searchInput, setSearchInput] = useState('')
 
 ////////////////////////////////  fill data from INPUTS into formData object  ////////////////////////////////
   const onChange = (key, value) => {
@@ -34,10 +27,11 @@ function Company () {
   }
 ////////////////////////// async function working on useEffect whenever a formData changes   ////////////////
   const sendRequests = async() => {
+    let temp = "Select Classification"
     if (
-      formData.name === '' ||
-      formData.code === '' ||
-      formData.classification === "Select Classification" ||
+      !formData.name ||
+      !formData.code ||
+      formData.classification === temp ||
       !formData.classification
       ) {
             console.log('Form Data: ',formData)
@@ -49,44 +43,34 @@ function Company () {
             ...formData
             }
         })
-        if(errorAdding)
-            console.log(errorAdding);
+        if(errorDuringCreating)
+            console.log(errorDuringCreating);
         setInputsToNull()
         setFormData({});
 
     } else {
-        const toBeSendFormData = JSON.parse(JSON.stringify(formData))
+        const toBeSendFormData = JSON.parse(JSON.stringify(formData)) // Object.create(formData)
         delete toBeSendFormData?.code;
             await editCompanyTemplate({
-            variables: {          
+            variables: {
                 id: editCompanyId,
             ...toBeSendFormData
             }
         })
-        if(errorEditing)
-            console.log(errorEditing);
+
+        if(errorDuringUpdating)
+            console.log(errorDuringUpdating);
     }
     getCompanies()
   }
-
   useEffect(()=>{
     sendRequests()
-  }, [formData])
+  },[formData])
 
 ///////////////////////////////////  hide create company template form  ////////////////////////////////////
   const hideTemplate = () => {
-    setFlex('flex-row')
-    setSpan('search-span span-margin')
-    setHide('company-template-form hide')
-    setTh('th-main')
-    setWidth('dashboard-header vw87')
-    setPublish('publish-btn')
-    setStar('star-btn')
-    setRightBtn('dashboard-header-buttons-right')
-    document.getElementById(
-        'dashboard-header-title'
-        ).innerHTML = `Company Template`
-    document.getElementById('dashboard').style.width = '100%'
+    setResponsiveDashboard('col-12')
+    setHide('hide')
     setInputsToNull()
     setFormData({})
     setEditCompanyId(null)
@@ -94,27 +78,9 @@ function Company () {
 
 /////////////////////////////////////  show create company template   //////////////////////////////////////
   const showTemplate = () => {
-    if(!editCompanyId === null)
-        fillAll_Inputs();
-    else{
-        setInputsToNull();
-        formData.name = '';
-        formData.code = '';
-    }
-    setEditCompanyId(null)
-    setFlex('flex-column')
-    setSpan('search-span')
+    setResponsiveDashboard('col-6')
     setDisable(false)
-    setHide('company-template-form')
-    setTh('th-main-after')
-    setWidth('dashboard-header')
-    setPublish('publish-btn-after')
-    setStar('star-btn-after')
-    setRightBtn('dashboard-header-buttons-right-after')
-    document.getElementById(
-      'dashboard-header-title'
-    ).innerHTML = `Company <br>Template`
-    document.getElementById('dashboard').style.width = '50%'
+    setHide('')
   }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -123,20 +89,20 @@ function Company () {
     setName('')
     setDescription('')
   }
-  const fillAll_Inputs = () => {
+  const setInputsToFormData = () => {
     setCode(formData.code)
     setName(formData.name)
     setDescription(formData.description)
   }
   ////////////////////////////////  Fill the table from the fetched data   ///////////////////////////////////
-  function getAllCompanies (td) {
-    if (isLoading) return 
+  function GetAllCompanies () {
+    if (isLoading) return
         <tr>
             <td>Loading data...</td>
         </tr>
-    if (errorFetching) return 
+    if (errorDuringFetch) return
         <tr>
-            <td>Error: {errorFetching}</td>
+            <td>Error: {errorDuringFetch}</td>
         </tr>
     return data?.companyTemplates?.data?.map(
       ({ id, code, name, classification }) => (
@@ -145,14 +111,14 @@ function Company () {
             <i className='fa fa-building' />
           </td>
           <td className='td-id'>{id}</td>
-          <td className={td}>{code}</td>
-          <td className={td}>{name}</td>
-          <td className={td}>{classification}</td>
-          <td className={td + '-last'}>
+          <td>{code}</td>
+          <td>{name}</td>
+          <td>{classification}</td>
+          <td>
             <button className='fa fa-trash' onClick={() => DeleteCompany(id)} />
             <button
               className='fa fa-pencil'
-              onClick={() => EditCompany({ id, code, name, classification })}
+              onClick={() => EditCompany(id, code, name, classification)}
             />
           </td>
         </tr>
@@ -161,22 +127,21 @@ function Company () {
   }
 
   /////////////////////////////  Query for Getting Company Data   ////////////////////////////////////////////
-  const [getCompanies,{ loading: isLoading, error: errorFetching, data }] = useLazyQuery(GET_USERS, {
-    fetchPolicy: 'network-only', // Used for first execution
-    nextFetchPolicy: 'cache-first' // Used for subsequent executions
+  const [getCompanies,{ loading: isLoading, error: errorDuringFetch, data }] = useLazyQuery(GET_USERS, {
+    fetchPolicy: 'network-only',
+    nextFetchPolicy: 'cache-first'
   })
   useEffect(() => {
     getCompanies()
   }, [])
 
   ////////////////////////////  Mutation for adding new Company   ////////////////////////////////////////////
-  const [createCompanyTemplate, { error: errorAdding }] = useMutation(
+  const [createCompanyTemplate, { error: errorDuringCreating }] = useMutation(
     ADD_COMPANY
   )
 
-
   ///////////////////////////  Mutation for deleting an existing Company  ////////////////////////////////////
-  const [deleteCompanyTemplate, { error: deletingError }] = useMutation(
+  const [deleteCompanyTemplate, { error: errorDuringDeleting }] = useMutation(
     DELETE_COMPANY
   )
 
@@ -186,69 +151,83 @@ function Company () {
         id: _id
       }
     })
-    if (deletingError) console.log('errorDeleting', deletingError)
-    else console.log('Deleted Successfully')
+    if (errorDuringDeleting)
+      console.log('errorDeleting', errorDuringDeleting)
+    else
+      alert('Deleted Successfully')
 
     setEditCompanyId(null)
-    getCompanies();
-    getCompanies();
+    getCompanies()
+    setSearchData(<tr></tr>)
   }
 
 ////////////////////////////   Mutation for editing an existing Company  ///////////////////////////////////
-  const [editCompanyTemplate, { error: errorEditing }] = useMutation(
+  const [editCompanyTemplate, { error: errorDuringUpdating }] = useMutation(
     EDIT_COMPANY
   )
 
-  function EditCompany ({ id, code, name, classification }) {
+  function EditCompany (Id, Code, Name, Classification ) {
     showTemplate()
-    formData.name = name
-    formData.code = code
-    formData.classification = classification
+    formData.name = Name
+    formData.code = Code
+    formData.classification = Classification
     formData.description = 'Click to add description'
-    fillAll_Inputs();
-    setEditCompanyId(id)
+    setEditCompanyId(Id)
+    setInputsToFormData();
     setDisable(true)
-
-    if (errorEditing) {
-      console.log('errorUpdating a company', errorEditing)
-    }
+    setTableHide('')
+    setSearchData(<tr></tr>)
   }
 
-
-
-
-////////////////////////////////////////    Search By Code   ///////////////////////////////////////////////
-  const searchItem = () =>{
-    let key = document.getElementById('search-input').value
-    if(key === '')
-      return;
-    console.log("Hello2", key)
-    setSearchHide('hide');
-    for(let i=0; i<data.companyTemplates.data.length; i++){
-      if(key === data.companyTemplates.data[i].code){  
-        console.log(data.companyTemplates.data[i]);
-        setSearchData(<tr>
-          <td className='td-1'>
-            <i className='fa fa-building' />
-          </td>
-          <td className='td-id'>{data.companyTemplates.data[i].id}</td>
-          <td >{data.companyTemplates.data[i].code}</td>
-          <td >{data.companyTemplates.data[i].name}</td>
-          <td >{data.companyTemplates.data[i].classification}</td>
-        </tr>)
-      }
-    }
-    
-
+//////////////////////////////////////    Search Company By Code   ///////////////////////////////////////
+const searchItem = (e) =>{
+  if(!searchInput || e){
+    setTableHide('')
+    setSearchInput('')
+    setSearchData(<tr></tr>)
+    sendRequests()
+    return;
   }
+  setTableHide('hide')
+  let flag = false, Code, Name, Id, Classification
+  for(let i=0; i<data.companyTemplates.data.length && !flag; i++){
+    if(searchInput === data.companyTemplates.data[i].code){
+      Code = data.companyTemplates.data[i].code
+      Name = data.companyTemplates.data[i].name
+      Id = data.companyTemplates.data[i].id
+      Classification = data.companyTemplates.data[i].classification
+
+      flag = true;
+      setSearchData(<tr>
+        <td className='td-1'>
+          <i className='fa fa-building' />
+        </td>
+        <td className='td-id'>{data.companyTemplates.data[i].id}</td>
+        <td >{Code}</td>
+        <td >{Name}</td>
+        <td >{Classification}</td>
+        <td>
+          <button className='fa fa-trash' onClick={() => DeleteCompany(Id)} />
+          <button className='fa fa-pencil'
+            onClick={() => EditCompany( Id, Code, Name, Classification )}
+          />
+        </td>
+      </tr>)
+    }
+  }
+  if(!flag){
+    setSearchData(<tr>
+      <td></td><td></td>
+      <td>No results found for: <b>{searchInput}</b></td></tr>)
+  }
+}
 ///////////////////////////////////////////    HTML    /////////////////////////////////////////////////////
   return (
     <>
       <main className='flex'>
-        <div className='main-content'>
-          <div className='dashboard' id='dashboard'>
-            <div className={width}>
-
+        <div className='main-content row'>
+          <div className={responsiveDashboard} id='dashboard'>
+            <div className='dashboard-header'>
               <div className='dashboard-header-buttons-left'>
                 <p
                   className='dashboard-header-title'
@@ -256,38 +235,50 @@ function Company () {
                 >
                   Company Template
                 </p>
-                <button className={publish}>Publish</button>
-                <button className={star}>
+                <button className='publish-btn'>
+                  <p className='publish-btn-p'>Publish</p>
+                </button>
+                <button className='star-btn'>
                   <i className='fa fa-star'></i>
                 </button>
               </div>
-              <div className={rightBtn} id='dashboard-header-buttons-right'>
-                <button className='create-btn' onClick={() => {showTemplate(); setFormData({})}}>
-                  CREATE COMPANY TEMPLATE
-                </button>
-                <i className='fa fa-edit'></i>
-                <i className='fa fa-calendar'></i>
-                <p>...</p>
+              <div className='dashboard-header-buttons-right' id='dashboard-header-buttons-right'>
+                <div className='dashboard-header-buttons-right-content'>
+                  <button className='create-btn' onClick={() => {showTemplate(); setFormData({})}}>
+                    CREATE COMPANY TEMPLATE
+                  </button>
+                  <i className='fa fa-edit'></i>
+                  <i className='fa fa-calendar'></i>
+                  <p>...</p>
+                </div>
               </div>
             </div>
             <div className='dashboard-outer-content'>
               <div className='dashboard-outer-content-buttons'>
+                  <div className='dashboard-outer-content-buttons-left col-6'>
+                    <b style={{marginTop: '10px'}}>Filter: </b> <i className="fa fa-filter" style={{marginTop: '10px'}}></i>
+                      <select className='dashboard-outer-content-filter-buttons' defaultValue={'Name'}>
+                        <option value={'Name'} >Name</option>
+                        <option>Shah</option>
+                      </select>
+                      <button className='dashboard-outer-content-filter-buttons'>
+                        Classification  <i className="fa fa-arrow-down"></i>
+                      </button>
+                  </div>
+                  <span className='dashboard-outer-content-buttons-right col-6'>
 
-              <div className={flex}>
-              <div className='flex-row'>
-              <b style={{marginTop: '10px'}}>Filter: </b> <i className="fa fa-filter" style={{marginTop: '10px'}}></i>
-                <button className='dashboard-outer-content-filter-buttons'>
-                Name <i className="fa fa-arrow-down"></i></button>
-                <button className='dashboard-outer-content-filter-buttons'>
-                Classification  <i className="fa fa-arrow-down"></i></button>
-                </div>
-                <span className={span}>
-                  <input type="search" placeholder='Search by Code' id='search-input'/>
-                  <button className='dashboard-outer-content-search-button'
-                  onClick={() => searchItem()}>
-                Search</button>
-                </span>
-              </div>
+                    <button className='hidden-input' placeholder='Search by Code' ><b>Search by code:</b></button>
+
+                    <input type="search" placeholder='Search' id='search-input'
+                      onBlur={() => searchItem()}
+                      value={searchInput}
+                      onChange={e => setSearchInput(e.target.value)}
+                    />
+                    <button className='dashboard-outer-content-search-button'
+                      onClick={() => {searchItem(true)}}>
+                      Clear
+                    </button>
+                  </span>
               </div>
               <div className='dashboard-inner-content'>
                 <div className='dashboard-inner-content-header'>
@@ -302,20 +293,20 @@ function Company () {
                           <button className='expand-btn'>Expand All</button>
                         </th>
                         <th className='th-id'>Id</th>
-                        <th className={th}>Code</th>
-                        <th className={th}>Name</th>
-                        <th className={th}>Classification</th>
-                        <th className={th}></th>
+                        <th className='th-main'>Code</th>
+                        <th className='th-main'>Name</th>
+                        <th className='th-main'>Classification</th>
+                        <th className='th-main'></th>
                       </tr>
                     </thead>
-                    <tbody className={searchHide}>{getAllCompanies()}</tbody>
+                    <tbody className={tableHide}>{GetAllCompanies()}</tbody>
                     <tbody>{searchData}</tbody>
                   </table>
                 </div>
               </div>
             </div>
           </div>
-          <div className={hide}>
+          <div className={hide + ' company-template-form col-6'}>
             <div className='form-header'>
               Company Template
               <span>
@@ -328,8 +319,8 @@ function Company () {
               <div className='form-upper-content'>
                 <div className='form-left-side-bar'>General</div>
                 <div className='form-right-side-bar'>
-                  <div className='form-main-inputs'>
-                    <div className='col-6'>
+                  <div className='form-main-inputs row'>
+                    <div className='col-5'>
                       <label>Name</label>
                       <input
                         type='text'
@@ -341,7 +332,7 @@ function Company () {
                         onChange={e => setName(e.target.value)}
                       />
                     </div>
-                    <div className='col-6'>
+                    <div className='col-4'>
                       <label>Code</label>
                       <input
                         type='text'
@@ -394,9 +385,7 @@ function Company () {
                       <select
                         required
                         defaultValue='Select Classification'
-                        onChange={e =>
-                          onChange('classification', e.target.value)
-                        }
+                        onChange={e => onChange('classification', e.target.value)}
                       >
                         <option value='Select Classification' defaultChecked={true} disabled={true}>
                           Select Classification
@@ -438,5 +427,4 @@ function Company () {
     </>
   )
 }
-
 export default Company
